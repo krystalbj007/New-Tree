@@ -40,9 +40,16 @@ const HandGestureHandler: React.FC<HandGestureHandlerProps> = ({
 
     // 拦截无意义的控制台信息
     const originalInfo = console.info;
+    const originalWarn = console.warn;
+    
     console.info = (...args: any[]) => {
       if (typeof args[0] === 'string' && args[0].includes('XNNPACK delegate')) return;
       originalInfo(...args);
+    };
+
+    console.warn = (...args: any[]) => {
+      if (typeof args[0] === 'string' && args[0].includes('OpenGL error checking is disabled')) return;
+      originalWarn(...args);
     };
 
     const initMediaPipe = async () => {
@@ -52,14 +59,30 @@ const HandGestureHandler: React.FC<HandGestureHandlerProps> = ({
           "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
         );
         if (!isComponentMounted.current) return;
-        const landmarker = await HandLandmarker.createFromOptions(vision, {
-          baseOptions: {
-            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
-            delegate: "GPU"
-          },
-          runningMode: "VIDEO",
-          numHands: 1
-        });
+        
+        // 尝试创建 HandLandmarker，如果 GPU 失败则回退到 CPU
+        let landmarker;
+        try {
+          landmarker = await HandLandmarker.createFromOptions(vision, {
+            baseOptions: {
+              modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+              delegate: "GPU"
+            },
+            runningMode: "VIDEO",
+            numHands: 1
+          });
+        } catch (gpuError) {
+          console.warn("GPU delegate failed, falling back to CPU", gpuError);
+          landmarker = await HandLandmarker.createFromOptions(vision, {
+            baseOptions: {
+              modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+              delegate: "CPU"
+            },
+            runningMode: "VIDEO",
+            numHands: 1
+          });
+        }
+        
         handLandmarkerRef.current = landmarker;
         await startCamera();
       } catch (e) {
@@ -93,7 +116,19 @@ const HandGestureHandler: React.FC<HandGestureHandlerProps> = ({
               },
               audio: false
             };
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (err: any) {
+          console.warn("HandGestureHandler: Initial camera request failed, retrying with relaxed constraints...", err);
+          if (isMobile && (err.name === 'OverconstrainedError' || err.name === 'NotFoundError')) {
+             stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          } else {
+            throw err;
+          }
+        }
+
         console.log("HandGestureHandler: Camera access granted!");
         
         if (videoRef.current && isComponentMounted.current) {
@@ -126,6 +161,7 @@ const HandGestureHandler: React.FC<HandGestureHandlerProps> = ({
     return () => {
       isComponentMounted.current = false;
       console.info = originalInfo;
+      console.warn = originalWarn;
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       if (lostTrackingTimeoutRef.current) clearTimeout(lostTrackingTimeoutRef.current);
       if (videoRef.current?.srcObject) {

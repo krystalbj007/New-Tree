@@ -12,6 +12,7 @@ import HandGestureHandler from './components/HandGestureHandler';
 import OpeningPage from './components/OpeningPage';
 import EnergyPulseStage from './components/EnergyPulseStage';
 import bgmMusic from './assets/music/黑鸭子 - 铃儿响叮当(英).mp3';
+import chimeSound from './assets/sfx/sparkle.mp3';
 
 const App: React.FC = () => {
   const [isStarted, setIsStarted] = useState(false);
@@ -46,9 +47,8 @@ const App: React.FC = () => {
     audioRef.current = bgm;
 
     const chime = new Audio();
-    chime.src = 'https://assets.mixkit.co/sfx/preview/mixkit-magical-light-sparkle-802.mp3';
+    chime.src = chimeSound;
     chime.volume = 0.3;
-    chime.crossOrigin = 'anonymous';
     chime.preload = 'auto';
     chimeRef.current = chime;
 
@@ -99,10 +99,25 @@ const App: React.FC = () => {
               } 
             };
         
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        // 尝试获取媒体流
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (firstErr: any) {
+          // 如果第一次失败，尝试最宽松的条件（不指定 facingMode）
+          console.warn("First camera attempt failed, trying relaxed constraints:", firstErr);
+          if (isMobile && (firstErr.name === 'OverconstrainedError' || firstErr.name === 'NotFoundError')) {
+             stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          } else {
+            throw firstErr;
+          }
+        }
+
         console.log("Camera permission granted!");
         // 只是为了触发权限弹窗，拿到后先关掉，后续由 HandGestureHandler 接管
-        stream.getTracks().forEach(track => track.stop());
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
       } catch (err: any) {
         console.error("Camera permission request failed:", err);
         // 如果权限被拒绝，仍然继续，但提示用户
@@ -211,7 +226,7 @@ const App: React.FC = () => {
             target={[0, 0, 0]}
           />
           
-          <Environment preset="city" />
+          <Environment files="/hdr/potsdamer_platz_1k.hdr" />
           
           <ambientLight intensity={0.2} />
           <spotLight position={[15, 20, 10]} angle={0.3} penumbra={1} intensity={25} color="#FF69B4" castShadow />
