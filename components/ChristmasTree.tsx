@@ -8,10 +8,12 @@ interface ChristmasTreeProps {
   rotationRef: React.MutableRefObject<number>;
 }
 
-const ORNAMENT_COUNT = 60;
-const TREE_PARTICLE_COUNT = 15000;
-const GROUND_PARTICLE_COUNT = 8000;
-const STAR_GLOW_COUNT = 220; 
+// 移动端优化：减少粒子数量以提高性能
+const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+const ORNAMENT_COUNT = isMobile ? 30 : 60;
+const TREE_PARTICLE_COUNT = isMobile ? 5000 : 15000;
+const GROUND_PARTICLE_COUNT = isMobile ? 3000 : 8000;
+const STAR_GLOW_COUNT = isMobile ? 100 : 220; 
 
 const ChristmasTree: React.FC<ChristmasTreeProps> = ({ mode, rotationRef }) => {
   const starRef = useRef<THREE.Mesh>(null);

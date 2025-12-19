@@ -11,6 +11,7 @@ import UIOverlay from './components/UIOverlay';
 import HandGestureHandler from './components/HandGestureHandler';
 import OpeningPage from './components/OpeningPage';
 import EnergyPulseStage from './components/EnergyPulseStage';
+import bgmMusic from './assets/music/黑鸭子 - 铃儿响叮当(英).mp3';
 
 const App: React.FC = () => {
   const [isStarted, setIsStarted] = useState(false);
@@ -27,13 +28,20 @@ const App: React.FC = () => {
   const mouseDownTime = useRef(0);
   const mouseDownPos = useRef({ x: 0, y: 0 });
 
-  // 初始化音频实例
+  // 初始化音频实例和检查WebGL支持
   useEffect(() => {
+    // 检查WebGL支持（移动端可能不支持）
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
+    if (!gl) {
+      console.warn('WebGL is not supported on this device');
+      alert('您的设备不支持WebGL，无法显示3D效果。请使用支持WebGL的浏览器。');
+    }
+
     const bgm = new Audio();
-    bgm.src = 'https://assets.mixkit.co/music/preview/mixkit-christmas-dream-531.mp3';
+    bgm.src = bgmMusic;
     bgm.loop = true;
     bgm.volume = 0.4;
-    bgm.crossOrigin = 'anonymous';
     bgm.preload = 'auto';
     audioRef.current = bgm;
 
@@ -69,13 +77,55 @@ const App: React.FC = () => {
 
     // 2. 预请求摄像头权限
     // 在用户点击事件中直接请求权限，可以极大提高在 iOS/Android 上的成功率
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    if (!isSecure && isMobile) {
+      console.warn("Camera access requires HTTPS on mobile devices");
+      alert('⚠️ 移动端访问摄像头需要HTTPS连接。\n\n如果您在本地开发，请使用 localhost 访问。\n如果部署到服务器，请确保使用 HTTPS。');
+    }
+
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        console.log("Requesting camera permission...");
+        // 移动端使用更宽松的约束条件
+        const constraints = isMobile 
+          ? { video: { facingMode: 'user' } } // 移动端只指定前置摄像头
+          : { 
+              video: { 
+                facingMode: 'user',
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+              } 
+            };
+        
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log("Camera permission granted!");
         // 只是为了触发权限弹窗，拿到后先关掉，后续由 HandGestureHandler 接管
         stream.getTracks().forEach(track => track.stop());
-      } catch (err) {
-        console.warn("Initial camera permission request failed or denied:", err);
+      } catch (err: any) {
+        console.error("Camera permission request failed:", err);
+        // 如果权限被拒绝，仍然继续，但提示用户
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          const message = isMobile
+            ? '摄像头权限被拒绝。\n\n请在浏览器设置中允许摄像头访问：\n1. 点击地址栏左侧的锁图标\n2. 选择"网站设置"\n3. 将"摄像头"设置为"允许"\n4. 刷新页面'
+            : '摄像头权限被拒绝。请在浏览器设置中允许摄像头访问，然后刷新页面。\n\nChrome: 点击地址栏左侧的锁图标 > 网站设置 > 摄像头 > 允许';
+          alert(message);
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+          alert('未检测到摄像头设备。请确保摄像头已连接并正常工作。');
+        } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+          alert('摄像头被其他应用占用，请关闭其他使用摄像头的应用后重试。');
+        } else {
+          console.warn("Camera access error:", err);
+          if (isMobile) {
+            alert(`摄像头访问失败: ${err.message || err.name}\n\n请确保：\n1. 使用HTTPS连接\n2. 允许摄像头权限\n3. 摄像头未被其他应用占用`);
+          }
+        }
+      }
+    } else {
+      console.warn("getUserMedia is not supported in this browser");
+      if (isMobile) {
+        alert('您的浏览器不支持摄像头访问。请使用Chrome、Safari或Firefox等现代浏览器。');
       }
     }
 
@@ -106,6 +156,8 @@ const App: React.FC = () => {
     }
   };
 
+  const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
   return (
     <div 
       className="relative w-full h-[100dvh] bg-[#05020a] overflow-hidden touch-none"
@@ -130,7 +182,21 @@ const App: React.FC = () => {
         active={isStarted}
       />
 
-      <Canvas shadows gl={{ antialias: false, stencil: false, depth: true }} dpr={[1, 2]}>
+      <Canvas 
+        shadows={!isMobile}
+        gl={{ 
+          antialias: false, 
+          stencil: false, 
+          depth: true,
+          powerPreference: "high-performance",
+          alpha: false,
+          preserveDrawingBuffer: false,
+          failIfMajorPerformanceCaveat: false
+        }} 
+        dpr={typeof window !== 'undefined' ? (isMobile ? Math.min(window.devicePixelRatio, 1.5) : Math.min(window.devicePixelRatio, 2)) : 1}
+        camera={{ position: [0, 10, 24], fov: 45 }}
+        performance={{ min: 0.5 }}
+      >
         <Suspense fallback={null}>
           <PerspectiveCamera makeDefault position={[0, 10, 24]} fov={45} />
           

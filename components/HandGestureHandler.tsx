@@ -75,16 +75,26 @@ const HandGestureHandler: React.FC<HandGestureHandlerProps> = ({
         return;
       }
       try {
-        // 更加兼容的约束条件
-        const constraints = {
-          video: { 
-            width: { ideal: 640 }, 
-            height: { ideal: 480 }, 
-            facingMode: "user" 
-          },
-          audio: false
-        };
+        console.log("HandGestureHandler: Requesting camera access...");
+        // 移动端使用更宽松的约束条件以提高兼容性
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const constraints = isMobile
+          ? {
+              video: { 
+                facingMode: "user"
+              },
+              audio: false
+            }
+          : {
+              video: { 
+                width: { ideal: 640 }, 
+                height: { ideal: 480 }, 
+                facingMode: "user" 
+              },
+              audio: false
+            };
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log("HandGestureHandler: Camera access granted!");
         
         if (videoRef.current && isComponentMounted.current) {
           videoRef.current.srcObject = stream;
@@ -95,13 +105,19 @@ const HandGestureHandler: React.FC<HandGestureHandlerProps> = ({
           videoRef.current.onloadedmetadata = () => {
             if (videoRef.current) {
               videoRef.current.play().then(() => {
+                console.log("HandGestureHandler: Video started playing");
                 animationFrameRef.current = requestAnimationFrame(predictWebcam);
               }).catch(err => console.error("Video play failed:", err));
             }
           };
         }
-      } catch (err) {
-        console.error("Camera access failed:", err);
+      } catch (err: any) {
+        console.error("HandGestureHandler: Camera access failed:", err);
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          console.error("Camera permission was denied. Please allow camera access in browser settings.");
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+          console.error("No camera device found.");
+        }
       }
     };
 
