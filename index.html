@@ -1,0 +1,111 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Dreamy Christmas Wish</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        --app-height: 100dvh;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #05020a;
+        overflow: hidden;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        height: 100dvh;
+        width: 100vw;
+        position: fixed;
+        touch-action: none;
+      }
+      #root {
+        height: 100dvh;
+        width: 100vw;
+      }
+      canvas {
+        display: block;
+      }
+      .font-playfair {
+        font-family: 'Playfair Display', serif;
+      }
+      
+      /* Magical Custom Cursor - Refined and Smaller */
+      .hand-cursor {
+        pointer-events: none;
+        position: fixed;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.4s ease, transform 0.1s ease-out;
+        mix-blend-mode: screen;
+      }
+      
+      .cursor-ring {
+        position: absolute;
+        width: 28px;
+        height: 28px;
+        border: 1.5px solid rgba(255, 255, 255, 0.4);
+        border-radius: 50%;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+      }
+      
+      .cursor-dot {
+        width: 4px;
+        height: 4px;
+        background-color: #fff;
+        border-radius: 50%;
+        box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.8), 0 0 5px #fff;
+        transition: all 0.3s ease;
+      }
+
+      .hand-cursor.grabbing .cursor-ring {
+        width: 14px;
+        height: 14px;
+        border-color: rgba(255, 215, 0, 0.9);
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.5), inset 0 0 5px rgba(255, 215, 0, 0.3);
+        border-width: 2px;
+      }
+      
+      .hand-cursor.grabbing .cursor-dot {
+        transform: scale(1.5);
+        background-color: #FFD700;
+        box-shadow: 0 0 12px 4px rgba(255, 215, 0, 1), 0 0 6px #FFD700;
+      }
+
+      .glitter-text {
+        background: linear-gradient(to right, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: shine 3s linear infinite;
+        background-size: 200% auto;
+      }
+      @keyframes shine {
+        to { background-position: 200% center; }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "@react-three/fiber": "https://esm.sh/@react-three/fiber@^9.4.2",
+    "lucide-react": "https://esm.sh/lucide-react@^0.561.0",
+    "@react-three/drei": "https://esm.sh/@react-three/drei@^10.7.7",
+    "@react-three/postprocessing": "https://esm.sh/@react-three/postprocessing@^3.0.4",
+    "three": "https://esm.sh/three@^0.182.0",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

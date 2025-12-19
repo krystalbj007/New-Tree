@@ -1,0 +1,7 @@
+{
+  "name": "New tree",
+  "description": "An interactive 3D Christmas experience featuring a magical particle tree, cinematic fireworks, and snow, styled in a dreamy purple-pink-gold aesthetic.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
