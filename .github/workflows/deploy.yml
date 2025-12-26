@@ -1,0 +1,27 @@
+name: Deploy site
+on:
+  push:
+    branches: ["main"] # 仅在推送到主分支时触发
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - run: npm install
+      - run: npm run build # 执行打包命令
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist # 告诉 GitHub 搬运打包后的成品
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/deploy-pages@v4 # 正式发布到 Pages
